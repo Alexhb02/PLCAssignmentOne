@@ -28,6 +28,11 @@
       ((eq? (operator expression) '||) (or (Mboolean (leftoperand expression)) (Mboolean (rightoperand expression))))
       ((eq? (operator expression) '!) (not (Mboolean (leftoperand expression))))
       (else (error 'badop "Bad operator")))))
+
+(define Mstate
+  (lambda (expression state)
+    (cond
+      ((eq? (operator expression) 'var) (append state (list (cadr expression)) )))))
       
 
 ; helper functions to abstract the operator and operands of binary expressions.

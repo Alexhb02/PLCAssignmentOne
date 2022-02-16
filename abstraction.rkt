@@ -10,6 +10,7 @@
     
 
 
+
 ; evaluate the value of an expression
 (define Mvalue
   (lambda (expression state)
@@ -25,18 +26,18 @@
  
 ; evaluate the truth of a statement
 (define Mboolean
-  (lambda (expression)
+  (lambda (expression state)
     (cond
       ((boolean? expression) expression)
-      ((eq? (operator expression) '==) (eq? (Mvalue (leftoperand expression)) (Mvalue (rightoperand expression))))
-      ((eq? (operator expression) '!=) (not (eq? (Mvalue (leftoperand expression)) (Mvalue (rightoperand expression)))))
-      ((eq? (operator expression) '<) (< (Mvalue (leftoperand expression)) (Mvalue (rightoperand expression))))
-      ((eq? (operator expression) '>) (> (Mvalue (leftoperand expression)) (Mvalue (rightoperand expression))))
-      ((eq? (operator expression) '>=) (>= (Mvalue (leftoperand expression)) (Mvalue (rightoperand expression))))
-      ((eq? (operator expression) '<=) (<= (Mvalue (leftoperand expression)) (Mvalue (rightoperand expression))))
-      ((eq? (operator expression) '&&) (and (Mboolean (leftoperand expression)) (Mboolean (rightoperand expression))))
-      ((eq? (operator expression) '||) (or (Mboolean (leftoperand expression)) (Mboolean (rightoperand expression))))
-      ((eq? (operator expression) '!) (not (Mboolean (leftoperand expression))))
+      ((eq? (operator expression) '==) (eq? (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
+      ((eq? (operator expression) '!=) (not (eq? (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression)state))))
+      ((eq? (operator expression) '<) (< (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
+      ((eq? (operator expression) '>) (> (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
+      ((eq? (operator expression) '>=) (>= (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
+      ((eq? (operator expression) '<=) (<= (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
+      ((eq? (operator expression) '&&) (and (Mboolean (leftoperand expression) state) (Mboolean (rightoperand expression) state)))
+      ((eq? (operator expression) '||) (or (Mboolean (leftoperand expression) state) (Mboolean (rightoperand expression) state)))
+      ((eq? (operator expression) '!) (not (Mboolean (leftoperand expression) state)))
       (else (error 'badop "Bad operator")))))
 
 (define Mdeclare
@@ -56,8 +57,18 @@
 (define Mreturn
   (lambda (expression state)
     (cond
-      ((null? expression) (error `invalidreturn "Invalid return"))
-      (else (Mvalue expression state)))))
+      ((exists? (caar state)) (get (caar state) state))
+      (else (error 'invalidreturn "Invalid return")))))
+
+(define Mif
+  (lambda (expression state)
+    (cond
+      ((Mboolean (conditional expression) state) (Mstate (then_s expression) state))
+      (else (Mstate (else_s expression) state)))))
+
+(define then_s cadr)
+(define conditional car)
+(define else_s caddr)
 
 ; implement exists, check if atom and check if present in state
 (define exists?

@@ -15,7 +15,7 @@
   (lambda (expression state)
     (cond
       ((number? expression) expression)
-      ((exists? expression state) (get expression state))
+      ((exists? expression state) (find expression state))
       ((eq? (operator expression) '+) (+ (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
       ((eq? (operator expression) '-) (- (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
       ((eq? (operator expression) '*) (* (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
@@ -49,40 +49,20 @@
 (define Massign
   (lambda (expression state)
     (cond
-      ((exists? ((car expression) state)) (insert (car expression) (cdr expression) state))
+      ((if (exists? (var state))) (insert (car expression) (cdr expression) state))
       (else (error 'varnotdeclared "Var not declared")))))
 
 ; assuming we pass in expression after "return"
 (define Mreturn
   (lambda (expression state)
     (cond
-      ((exists? (caar state)) (get (caar state) state))
-      (else (error 'invalidreturn "Invalid return")))))
+      (
+      ((if (exists? (var state))) (find var state))
+      (else (error 'invalidreturn "Invalid return"))
 
 ; implement exists, check if atom and check if present in state
-(define exists?
-  (lambda (var state)
-    (cond
-      ((pair? var) #f)
-      ((null? state) #f)
-      ((eq? var (caar state)) #t)
-      (else (exists? var (cdr state))))))
-
-; get the value stored in the state
-(define get
-  (lambda (var state)
-    (cond
-      ((null? state) (error 'varnotdeclared "The variable has not been declared"))
-      ((eq? var (caar state)) (car (cdar state)))
-      (else (get var (cdr state))))))
 
 ; implement insert (basically what we did in class)
-(define insert
-  (lambda (var value state)
-    (cond
-      ((null? state) (error 'varnotdeclared "The variable has not been declared"))
-      ((eq? var (caar state)) (cons (cons (caar state) (list value))(cdr state)))
-      (else (cons (car state) (insert var value (cdr state)))))))
 
 (define Mstate
   (lambda (expression state)

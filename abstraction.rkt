@@ -56,8 +56,8 @@
 (define Mreturn
   (lambda (expression state)
     (cond
-      ((exists? (caar state)) (get (caar state) state))
-      (else (error 'invalidreturn "Invalid return")))))
+      ((null? expression) (error `invalidreturn "Invalid return"))
+      (else (Mvalue expression state)))))
 
 ; implement exists, check if atom and check if present in state
 (define exists?

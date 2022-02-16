@@ -108,7 +108,11 @@
 (define Mstate
   (lambda (expression state)
     (cond
-      ((eq? (car expression) 'var) (Mdeclare expression state)))))
+      ((eq? (car expression) 'var) (Mdeclare (cdr expression) state))
+      ((eq? (car expression) 'if) (Mif (cdr expression) state))
+      ((eq? (car expression) '=) (Massign (cdr expression) state))
+      ((eq? (car expression) 'while) (Mwhile (cdr expression) state))
+      ((eq? (car expression) 'return) (Mreturn (cdr expression) state)))))
       
       
 

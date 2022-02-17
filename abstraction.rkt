@@ -16,7 +16,7 @@
 (define interpreter-help
   (lambda (syntaxtree state)
     (cond
-      [(null? (car syntaxtree)) (get 'return state)]
+      [(null? syntaxtree) (get 'return state)]
       [else (interpreter-help (cdr syntaxtree) (Mstate (car syntaxtree) state))]
       )))
 
@@ -52,7 +52,7 @@
 (define Mdeclare
   (lambda (expression state)
     (cond
-      ((not (null? (cdr (cdr expression)))) (cons (list (cadr expression) (Mvalue(caddr expression))) state))
+      ((not (null? (cdr (cdr expression)))) (cons (list (cadr expression) (Mvalue (caddr expression) state)) state))
       ((not (null? (cadr expression))) (cons (list (cadr expression)) state)))))
 
 ;assuming exists and insert work properly
@@ -73,13 +73,13 @@
   (lambda (expression state)
     (cond
       ((Mboolean (conditional expression) state) (Mstate (then_s expression) state))
-      (else (Mstate (else_s expression) state)))))
+      ((not (null? (cddr expression))) (Mstate (else_s expression) state)))))
 
 (define Mwhile
   (lambda (expression state)
     (cond
       [(not (Mboolean (conditional expression) state)) state]
-      [else (Mwhile (conditional expression) (then_s expression) (Mstate (then_s expression) state))]
+      [else (Mwhile expression (Mstate (then_s expression) state))]
      ))) 
      
 (define then_s cadr)
@@ -114,11 +114,11 @@
 (define Mstate
   (lambda (expression state)
     (cond
-      ((eq? (car expression) 'var) (Mdeclare (cdr expression) state))
+      ((eq? (car expression) 'var) (Mdeclare expression state))
       ((eq? (car expression) 'if) (Mif (cdr expression) state))
       ((eq? (car expression) '=) (Massign (cdr expression) state))
       ((eq? (car expression) 'while) (Mwhile (cdr expression) state))
-      ((eq? (car expression) 'return) (Mreturn (cdr expression) state)))))
+      ((eq? (car expression) 'return) (Mreturn (cadr expression) state)))))
       
       
 

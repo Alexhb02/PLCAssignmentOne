@@ -41,6 +41,8 @@
   (lambda (expression state)
     (cond
       ((boolean? expression) expression)
+      ((eq? expression 'true) #t)
+      ((eq? expression 'false) #f)
       ((eq? (operator expression) '==) (eq? (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
       ((eq? (operator expression) '!=) (not (eq? (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression)state))))
       ((eq? (operator expression) '<) (< (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
@@ -105,6 +107,8 @@
     (cond
       ((null? state) (error 'varnotdeclared "The variable has not been declared"))
       ((and (eq? var (caar state)) (null? (cdar state))) (error 'varnotassigned "using before assigning"))
+      ((and (eq? var 'return) (eq? #t (car (cdar state)))) 'true)
+      ((and (eq? var 'return) (eq? #f (car (cdar state)))) 'false)
       ((eq? var (caar state)) (car (cdar state)))
       (else (get var (cdr state))))))
 

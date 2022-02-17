@@ -65,6 +65,13 @@
       ((Mboolean (conditional expression) state) (Mstate (then_s expression) state))
       (else (Mstate (else_s expression) state)))))
 
+(define Mwhile
+  (lambda (expression state)
+    (cond
+      [(not (Mboolean (conditional expression) state)) state]
+      [else (Mwhile (conditional expression) (then_s expression) (Mstate (then_s expression) state))]
+     ))) 
+     
 (define then_s cadr)
 (define conditional car)
 (define else_s caddr)

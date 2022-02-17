@@ -1,14 +1,24 @@
 #lang racket
 ;changed this to prefix
 
+(require "simpleParser.rkt")
 
 ;evaluate an expression
 ;(define Mexpression
 ;  (lambda (expression state)
  ;   (cond
   ;   ((
-    
+(define interpreter
+  (lambda (filename)
+    (interpreter-help (parser filename) '((return)))
+    ))
 
+(define interpreter-help
+  (lambda (syntaxtree state)
+    (cond
+      [(null? (car syntaxtree)) (get 'return state)]
+      [else (interpreter-help (cdr syntaxtree) (Mstate (car syntaxtree) state))]
+      )))
 
 ; evaluate the value of an expression
 (define Mvalue
@@ -57,7 +67,7 @@
   (lambda (expression state)
     (cond
       ((null? expression) (error `invalidreturn "Invalid return"))
-      (else (Mvalue expression state)))))
+      (else (insert 'return (Mvalue expression state) state)))))
 
 (define Mif
   (lambda (expression state)

@@ -21,7 +21,7 @@
       ((eq? (operator expression) '*) (* (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
       ((eq? (operator expression) '/) (quotient (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
       ((eq? (operator expression) '%) (remainder (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
-      (else (Mboolean expression))))) ; might work
+      (else (Mboolean expression state))))) ; might work
  
 ; evaluate the truth of a statement
 (define Mboolean
@@ -37,7 +37,7 @@
       ((eq? (operator expression) '&&) (and (Mboolean (leftoperand expression) state) (Mboolean (rightoperand expression) state)))
       ((eq? (operator expression) '||) (or (Mboolean (leftoperand expression) state) (Mboolean (rightoperand expression) state)))
       ((eq? (operator expression) '!) (not (Mboolean (leftoperand expression) state)))
-      (else (error 'badop "Bad operator")))))
+      (else ((error 'badop "Bad operator"))))))
 
 (define Mdeclare
   (lambda (expression state)
@@ -49,7 +49,7 @@
 (define Massign
   (lambda (expression state)
     (cond
-      ((exists? (car expression) state) (insert (car expression) (Mvalue (cdr expression)) state))
+      ((exists? (car expression) state) (insert (car expression) (Mvalue (cadr expression) state) state))
       (else (error 'varnotdeclared "Var not declared")))))
 
 ; assuming we pass in expression after "return"
@@ -97,7 +97,11 @@
 (define Mstate
   (lambda (expression state)
     (cond
-      ((eq? (car expression) 'var) (Mdeclare expression state)))))
+      ((eq? (car expression) 'var) (Mdeclare (cdr expression) state))
+      ((eq? (car expression) 'if) (Mif (cdr expression) state))
+      ((eq? (car expression) '=) (Massign (cdr expression) state))
+      ((eq? (car expression) 'while) (Mwhile (cdr expression) state))
+      ((eq? (car expression) 'return) (Mreturn (cdr expression) state)))))
       
       
 

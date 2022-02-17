@@ -43,6 +43,7 @@
       ((boolean? expression) expression)
       ((eq? expression 'true) #t)
       ((eq? expression 'false) #f)
+      ((exists? expression state) (get expression state))
       ((eq? (operator expression) '==) (eq? (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
       ((eq? (operator expression) '!=) (not (eq? (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression)state))))
       ((eq? (operator expression) '<) (< (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))

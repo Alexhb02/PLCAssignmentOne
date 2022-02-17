@@ -1,14 +1,24 @@
 #lang racket
 ;changed this to prefix
 
+(require "simpleParser.rkt")
 
 ;evaluate an expression
 ;(define Mexpression
 ;  (lambda (expression state)
  ;   (cond
   ;   ((
-    
+(define interpreter
+  (lambda (filename)
+    (interpreter-help (parser filename) '((return)))
+    ))
 
+(define interpreter-help
+  (lambda (syntaxtree state)
+    (cond
+      [(null? (car syntaxtree)) (get 'return state)]
+      [else (interpreter-help (cdr syntaxtree) (Mstate (car syntaxtree) state))]
+      )))
 
 
 ; evaluate the value of an expression
@@ -22,7 +32,7 @@
       ((eq? (operator expression) '*) (* (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
       ((eq? (operator expression) '/) (quotient (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
       ((eq? (operator expression) '%) (remainder (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
-      (else (Mboolean expression))))) ; might work
+      (else (Mboolean expression state))))) ; might work
  
 ; evaluate the truth of a statement
 (define Mboolean
@@ -38,7 +48,7 @@
       ((eq? (operator expression) '&&) (and (Mboolean (leftoperand expression) state) (Mboolean (rightoperand expression) state)))
       ((eq? (operator expression) '||) (or (Mboolean (leftoperand expression) state) (Mboolean (rightoperand expression) state)))
       ((eq? (operator expression) '!) (not (Mboolean (leftoperand expression) state)))
-      (else (error 'badop "Bad operator")))))
+      (else ((error 'badop "Bad operator"))))))
 
 (define Mdeclare
   (lambda (expression state)
@@ -50,7 +60,7 @@
 (define Massign
   (lambda (expression state)
     (cond
-      ((exists? (car expression) state) (insert (car expression) (Mvalue (cdr expression)) state))
+      ((exists? (car expression) state) (insert (car expression) (Mvalue (cadr expression) state) state))
       (else (error 'varnotdeclared "Var not declared")))))
 
 ; assuming we pass in expression after "return"
@@ -69,6 +79,8 @@
 (define then_s cadr)
 (define conditional car)
 (define else_s caddr)
+      ((null? expression) (error `invalidreturn "Invalid return"))
+      (else (insert 'return (Mvalue expression state) state)))))
 
 (define Mif
   (lambda (expression state)
@@ -76,6 +88,13 @@
       ((Mboolean (conditional expression) state) (Mstate (then_s expression) state))
       (else (Mstate (else_s expression) state)))))
 
+(define Mwhile
+  (lambda (expression state)
+    (cond
+      [(not (Mboolean (conditional expression) state)) state]
+      [else (Mwhile (conditional expression) (then_s expression) (Mstate (then_s expression) state))]
+     ))) 
+     
 (define then_s cadr)
 (define conditional car)
 (define else_s caddr)

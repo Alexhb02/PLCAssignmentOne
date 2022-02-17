@@ -26,6 +26,8 @@
     (cond
       ((number? expression) expression)
       ((exists? expression state) (get expression state))
+      ((boolean? expression) expression)
+      ((not (list? expression)) (error 'varnotdeclared "Var not declared"))
       ((eq? (operator expression) '+) (+ (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
       ((and (eq? (operator expression) '-) (null? (cddr expression))) (- 0 (Mvalue (leftoperand expression) state) ))
       ((eq? (operator expression) '-) (- (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
@@ -60,7 +62,6 @@
 (define Massign
   (lambda (expression state)
     (cond
-      ((and (exists? (cdr expression) state) (null? (cdr (get (cdr expression) state) ))) (error 'varnotdeclared "using before assigning"))
       ((exists? (car expression) state) (insert (car expression) (Mvalue (cadr expression) state) state))
       (else (error 'varnotdeclared "Var not declared")))))
 
@@ -103,6 +104,7 @@
   (lambda (var state)
     (cond
       ((null? state) (error 'varnotdeclared "The variable has not been declared"))
+      ((and (eq? var (caar state)) (null? (cdar state))) (error 'varnotassigned "using before assigning"))
       ((eq? var (caar state)) (car (cdar state)))
       (else (get var (cdr state))))))
 

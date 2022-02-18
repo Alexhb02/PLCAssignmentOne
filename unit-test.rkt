@@ -14,7 +14,7 @@
 
 ; ; Feel free to change the filename inside the double quotes to the name of your module file.
 (require rackunit 
-  "../interpreter.rkt"
+  "interpreter.rkt"
   "simpleParser.rkt")
 
 ; ; Number Tests

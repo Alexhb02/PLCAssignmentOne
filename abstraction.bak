@@ -1,5 +1,5 @@
 #lang racket
-;Alex Bradley, Lucas Tilford, Andrew 
+;Alex Bradley, Lucas Tilford, Andrew Gross
 
 (require "simpleParser.rkt")
 
@@ -111,7 +111,7 @@
   (lambda (var state)
     (cond
       ((null? state) (error 'varnotdeclared "The variable has not been declared"))
-      ((and (eq? var (caar state)) (null? (cdar state))) (error 'varnotassigned "using before assigning"))
+      ((and (eq? var (caar state)) (null? (cdar state))) (interpreter "11.txt")(error 'varnotassigned "using before assigning"))
       ((and (eq? var 'return) (eq? #t (car (cdar state)))) 'true)
       ((and (eq? var 'return) (eq? #f (car (cdar state)))) 'false)
       ((eq? var (caar state)) (car (cdar state)))
@@ -133,9 +133,15 @@
       ((eq? (car statement) 'if) (Mif (cdr statement) state))
       ((eq? (car statement) '=) (Massign (cdr statement) state))
       ((eq? (car statement) 'while) (Mwhile (cdr statement) state))
+      ((eq? (car statement) 'begin) (Mblock (cdr statement) (cons '() state)))
       ((eq? (car statement) 'return) (Mreturn (cadr statement) state)))))
-      
-      
+
+(define Mblock
+  (lambda (actions layers)
+    (cond
+      [(null? (car actions)) (cdr layers)]
+      [else (Mblock (cdr actions) Mstate (car actions))]
+     )))
 
 ; helper functions to abstract the operator and operands of binary expressions.
 (define operator
@@ -143,3 +149,4 @@
     (car exp)))
 (define leftoperand cadr)
 (define rightoperand caddr)
+

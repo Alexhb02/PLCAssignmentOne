@@ -1,144 +1,117 @@
 #lang racket
-;Alex Bradley, Lucas Tilford, Andrew Gross
 
-(require "simpleParser.rkt")
-
-;returns the proper value by evaulating the syntax tree resulting from parsing the input file
-(define interpreter
-  (lambda (filename)
-    (interpreter-help (parser filename) '((return)))
-    ))
-
-;helper function for the interpreter that evalutes each statement in the syntax tree while updating the state
-(define interpreter-help
-  (lambda (syntaxtree state)
+; insert places an input number in an ordered list in a manner that maintains said ascending order
+(define insert
+  (lambda (a list)
     (cond
-      [(null? syntaxtree) (get 'return state)]
-      [else (interpreter-help (cdr syntaxtree) (Mstate (car syntaxtree) state))]
+      [(null? list) list]
+      [(> (car list) a) (cons a list)]
+      [else (cons (car list) (insert a (cdr list)))])))
+
+; removedups removes all atoms in a list that precedes an atom that is the same.
+(define removedups
+  (lambda (mylist)
+    (cond
+      [(null? (cdr mylist)) (list (car mylist))]
+      [(eq? (car mylist) (car (cdr mylist))) (removedups (cons (car mylist) (cdr (cdr mylist))))]
+      [else (cons (car mylist) (removedups (cdr mylist)))])))
+
+
+; nestlist takes an input list and recursively creates a list with the element after it so that the last element may be nested in multiple lists
+(define nestlist
+  (lambda (mylist)
+  (cond
+    [(null? mylist) mylist]
+    [(null? (cdr mylist)) mylist]
+    [else (list (car mylist) (nestlist (cdr mylist)))])))
+
+; deepcons removes an input element from a list and any sublists within the list
+(define deepcons
+  (lambda (a mylist)
+    (cond
+      [(list? (car mylist)) (cons (deepcons a (car mylist)) (cdr mylist))]
+      [else (cons a mylist)])))
+
+; nestlistfront takes an input list and recursively creates a list with the element after it so that the first element may be nested in multiple lists
+(define nestlistfront
+  (lambda (mylist)
+    (nestlistfronthelp (myreverse mylist))))
+
+(define nestlistfronthelp
+  (lambda (mylist)
+    (cond
+      [(null? (cdr mylist)) (list(car mylist))]
+      [else (list (nestlistfronthelp (cdr mylist)) (car mylist))])))
+
+; this function appends to list together
+(define myappend
+  (lambda (l1 l2)
+    (if (null? l1)
+        l2
+        (cons (car l1) (myappend (cdr l1) l2)))))
+
+; this function reverses a list
+(define myreverse
+  (lambda (lis)
+    (if (null? lis)
+        '()
+        (myappend (myreverse (cdr lis)) (cons (car lis) '())))))
+
+; numparens* takes an input list and finds the number of pairs of parentheses in the entire list
+(define numparens*
+  (lambda (mylist)
+    (cond
+      [(null? mylist) 1]
+      [(list? (car mylist)) (+ (numparens* (cdr mylist)) (numparens* (car mylist)))]
+      [else (numparens* (cdr mylist))])))
+
+;dup* duplicates all of the elements in the input list, both atoms and sublists alike
+(define dup*
+  (lambda (mylist)
+    (cond
+      [(null? mylist) mylist]
+      [(list? (car mylist)) (cons (dup* (car mylist)) (dup*(cdr mylist)))]
+      [else (cons (car mylist) (cons (car mylist) (dup* (cdr mylist))))])))
+
+
+;removedups* removes all of the two consecutive atoms that equal each other, even within sublists of the input list.
+(define removedups*
+  (lambda (mylist)
+    (cond
+      [(null? mylist) mylist]
+      [(list? (car mylist)) (cons (removedups* (car mylist)) (removedups* (cdr mylist)))]
+      [(null? (cdr mylist)) (cons (car mylist) (cdr mylist))]
+      [(eq? (car mylist) (car (cdr mylist))) (removedups*(cons (car mylist) (cdr(cdr mylist))))]
+      [else (cons (car mylist) (removedups*(cdr mylist)))]
       )))
 
-; evaluates the value of an expression
-(define Mvalue
-  (lambda (expression state)
+; removedups** removes all of the duplicate that removes repeated element in any list or sublist and then removes any repeated sublists
+(define removedups**
+  (lambda (mylist)
+    (if (equal? (removedups* mylist) (removedupshelp** (removedups* mylist)))
+        (removedups* mylist)
+        (removedups** (removedupshelp** (removedups* mylist))))))
+
+(define removedupshelp**
+  (lambda (mylist)
     (cond
-      ((number? expression) expression)
-      ((exists? expression state) (get expression state))
-      ((boolean? expression) expression)
-      ((not (list? expression)) (error 'varnotdeclared "Var not declared"))
-      ((eq? (operator expression) '+) (+ (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
-      ((and (eq? (operator expression) '-) (null? (cddr expression))) (- 0 (Mvalue (leftoperand expression) state) ))
-      ((eq? (operator expression) '-) (- (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
-      ((eq? (operator expression) '*) (* (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
-      ((eq? (operator expression) '/) (quotient (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
-      ((eq? (operator expression) '%) (remainder (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
-      (else (Mboolean expression state))))) ; check boolean value of expression
- 
-; evaluates the truth of a statement
-(define Mboolean
-  (lambda (expression state)
-    (cond
-      ((boolean? expression) expression)
-      ((eq? expression 'true) #t)
-      ((eq? expression 'false) #f)
-      ((exists? expression state) (get expression state))
-      ((eq? (operator expression) '==) (eq? (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
-      ((eq? (operator expression) '!=) (not (eq? (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression)state))))
-      ((eq? (operator expression) '<) (< (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
-      ((eq? (operator expression) '>) (> (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
-      ((eq? (operator expression) '>=) (>= (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
-      ((eq? (operator expression) '<=) (<= (Mvalue (leftoperand expression) state) (Mvalue (rightoperand expression) state)))
-      ((eq? (operator expression) '&&) (and (Mboolean (leftoperand expression) state) (Mboolean (rightoperand expression) state)))
-      ((eq? (operator expression) '||) (or (Mboolean (leftoperand expression) state) (Mboolean (rightoperand expression) state)))
-      ((eq? (operator expression) '!) (not (Mboolean (leftoperand expression) state)))
-      (else ((error 'badop "Bad operator"))))))
+      [(null? mylist) mylist]
+      [(not (list? mylist)) mylist]
+      [(null? (cdr mylist)) (list (removedupshelp** (car mylist)))]
+      [else (cons (car mylist) (removedupshelp** (cdr mylist)))])))
+  
+;transpose transposes a list of lists in a similar fashion to a matrix.
+(define transpose
+  (lambda (mylist)
+    (if (null? (car mylist))
+      '()
+      (cons (mymap car mylist)(transpose (mymap cdr mylist))))))
 
-; updates the state with the newly declared variable
-(define Mdeclare
-  (lambda (expression state)
-    (cond
-      ((not (null? (cdr (cdr expression)))) (cons (list (cadr expression) (Mvalue (caddr expression) state)) state))
-      ((not (null? (cadr expression))) (cons (list (cadr expression)) state)))))
 
-; updates the state variable with the newly assigned value
-(define Massign
-  (lambda (expression state)
-    (cond
-      ((exists? (car expression) state) (insert (car expression) (Mvalue (cadr expression) state) state))
-      (else (error 'varnotdeclared "Var not declared")))))
-
-; evauluates the value of an expression following a return keyword
-(define Mreturn
-  (lambda (expression state)
-    (cond
-      ((null? expression) (error `invalidreturn "Invalid return"))
-      (else (insert 'return (Mvalue expression state) state)))))
-
-; evaluates an if statement
-(define Mif
-  (lambda (expression state)
-    (cond
-      ((Mboolean (conditional expression) state) (Mstate (then_s expression) state))
-      ((not (null? (optional_else expression))) (Mstate (else_s expression) state))
-      (else state))))
-
-;abstraction for if statement
-(define optional_else cddr)
-
-; evauluates a while statement
-(define Mwhile
-  (lambda (expression state)
-    (cond
-      [(not (Mboolean (conditional expression) state)) state]
-      [else (Mwhile expression (Mstate (then_s expression) state))]
-     )))
-
-;abstractions for if and while statements 
-(define then_s cadr)
-(define conditional car)
-(define else_s caddr)
-
-; check whether a variable exists in the state (ie check if the variable has been declared)
-(define exists?
-  (lambda (var state)
-    (cond
-      ((pair? var) #f)
-      ((null? state) #f)
-      ((eq? var (caar state)) #t)
-      (else (exists? var (cdr state))))))
-
-; get the value of the variable stored in the state
-(define get
-  (lambda (var state)
-    (cond
-      ((null? state) (error 'varnotdeclared "The variable has not been declared"))
-      ((and (eq? var (caar state)) (null? (cdar state))) (interpreter "11.txt")(error 'varnotassigned "using before assigning"))
-      ((and (eq? var 'return) (eq? #t (car (cdar state)))) 'true)
-      ((and (eq? var 'return) (eq? #f (car (cdar state)))) 'false)
-      ((eq? var (caar state)) (car (cdar state)))
-      (else (get var (cdr state))))))
-
-; updates the value of the given variable in the state
-(define insert
-  (lambda (var value state)
-    (cond
-      ((null? state) (error 'varnotdeclared "The variable has not been declared"))
-      ((eq? var (caar state)) (cons (cons (caar state) (list value))(cdr state)))
-      (else (cons (car state) (insert var value (cdr state)))))))
-
-; evaluates the given statement
-(define Mstate
-  (lambda (statement state)
-    (cond
-      ((eq? (car statement) 'var) (Mdeclare statement state))
-      ((eq? (car statement) 'if) (Mif (cdr statement) state))
-      ((eq? (car statement) '=) (Massign (cdr statement) state))
-      ((eq? (car statement) 'while) (Mwhile (cdr statement) state))
-      ((eq? (car statement) 'return) (Mreturn (cadr statement) state)))))
-      
-; helper functions to abstract the operator and operands of binary expressions.
-(define operator
-  (lambda (exp)
-    (car exp)))
-(define leftoperand cadr)
-(define rightoperand caddr)
-
+; mymap: takes a function and a list and applies the function to each element in the list
+; (mymap (lambda (x) (* x x)) '(1 3 5 9))  => (1 9 25 81)
+(define mymap
+  (lambda (f lis)
+    (if (null? lis)
+        '()
+        (cons (f (car lis)) (mymap f (cdr lis))))))

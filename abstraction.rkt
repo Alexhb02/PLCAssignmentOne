@@ -71,7 +71,7 @@
   (lambda (expression state)
     (cond
       ((null? expression) (error `invalidreturn "Invalid return"))
-      (else (insert 'return (Mvalue expression state) (car state))))))
+      (else (insert 'return (Mvalue expression state) state)))))
 
 ; evaluates an if statement
 (define Mif
@@ -79,7 +79,7 @@
     (cond
       ((Mboolean (conditional expression) state) (Mstate (then_s expression) state))
       ((not (null? (optional_else expression))) (Mstate (else_s expression) state))
-      (else (car state)))))
+      (else state))))
 
 ;abstraction for if statement
 (define optional_else cddr)
@@ -100,9 +100,10 @@
 (define exists?
   (lambda (var state)
     (cond
-      ((null? (car state)) #f)
+      ((null? state) #f)
+      ((null? (cdr state)) (existsHelper var (car state)))
       ((eq? (existsHelper var (car state)) #t) #t)
-      (else (existsHelper var (cdr state))))))
+      (else (exists? var (cdr state))))))
 
 ; check whether a variable exists in the state (ie check if the variable has been declared)
 (define existsHelper
@@ -117,8 +118,9 @@
   (lambda (var state)
     (cond
       ((null? state) 'false)
-      [(eq? (getHelper var (car state)) 'false) (cons (car state) (get var (cdr state)))]
-      [else (getHelper var (car state))])))
+      ((null? (cdr state)) (getHelper var (car state)))
+      [(exists? var (car state)) (getHelper var (car state))]
+      [else (get var (cdr state))])))
 ; get the value of the variable stored in the state
 (define getHelper
   (lambda (var state)
@@ -134,8 +136,8 @@
   (lambda (var value state)
     (cond
       [(null? state) (error 'varnotdeclared "The variable has not been declared")]
-      [(eq? (insertHelper var value (car state)) #f) (cons (car state) (insert var value (cdr state)))]
-      [else state])))
+      [(null? (cdr state)) (list (insertHelper var value (car state)))]
+      [else (insert var value (cdr state))])))
 ; updates the value of the given variable in the state
 (define insertHelper
   (lambda (var value state)
@@ -159,7 +161,7 @@
   (lambda (actions layers)
     (cond
       [(null? (car actions)) (cdr layers)]
-      [else (Mblock (cdr actions) Mstate (car actions))]
+      [else (Mblock (cdr actions) (Mstate (car actions) layers))]
      )))
 
 ; helper functions to abstract the operator and operands of binary expressions.

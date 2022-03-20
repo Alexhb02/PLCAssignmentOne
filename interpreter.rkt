@@ -14,6 +14,7 @@
   (lambda (syntaxtree state)
     (cond
       [(null? syntaxtree) (get 'return state)]
+      [(eq? (caar syntaxtree) 'return) (get 'return (Mstate (car syntaxtree) state (lambda(v) (interpreter-help (cdr syntaxtree) v))))]
       [else (interpreter-help (cdr syntaxtree) (Mstate (car syntaxtree) state (lambda(v) (interpreter-help (cdr syntaxtree) v))))]
       )))
 
@@ -72,7 +73,8 @@
   (lambda (expression state)
     (cond
       ((null? expression) (error `invalidreturn "Invalid return"))
-      (else (insert 'return (Mvalue expression state) state)))))
+      ((null? (get `return state)) (insert 'return (Mvalue expression state) state))
+      (else state))))
 
 ; evaluates an if statement
 (define Mif
@@ -94,7 +96,7 @@
   (lambda (expression state next break)
     (cond
       [(not (Mboolean (conditional expression) state)) (next state)]
-      [else (Mstate (then_s expression) state (lambda(v) (loop (conditional expression) (then_s expression) v next break)))])))
+      [else (Mstate (then_s expression) state (lambda(v) (loop expression v next break)))])))
 
 ;abstractions for if and while statements 
 (define then_s cadr)
@@ -130,6 +132,8 @@
   (lambda (var state)
     (cond
       ((null? state) (error 'varnotdeclared "The variable has not been declared"))
+      ((and (and(eq? var (caar state)) (eq? var 'return)) (not (null? (cdar state))) (cadar state)))
+      ((and (eq? var (caar state)) (eq? var 'return)) (cdar state))
       ((and (eq? var (caar state)) (null? (cdar state)))(error 'varnotassigned "using before assigning"))
       ((and (eq? var 'return) (eq? #t (car (cdar state)))) 'true)
       ((and (eq? var 'return) (eq? #f (car (cdar state)))) 'false)

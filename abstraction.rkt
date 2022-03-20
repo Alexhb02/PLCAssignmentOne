@@ -72,8 +72,16 @@
   (lambda (expression state)
     (cond
       ((null? expression) (error `invalidreturn "Invalid return"))
-      (else (insert 'return (Mvalue expression state) state)))))
+      ((null? (get `return state)) (insert 'return (Mvalue expression state) state))
+      (else state))))
 
+; check if there is a return value
+(define return
+  (lambda (state)
+    (cond
+      ((eq? (car state) 'return) (cdar state))
+      (else (return (cdr state))))))
+                                 
 ; evaluates an if statement
 (define Mif
   (lambda (expression state)
@@ -127,6 +135,8 @@
   (lambda (var state)
     (cond
       ((null? state) (error 'varnotdeclared "The variable has not been declared"))
+      ((and (and(eq? var (caar state)) (eq? var 'return)) (not (null? (cdar state))) (cadar state)))
+      ((and (eq? var (caar state)) (eq? var 'return)) (cdar state))
       ((and (eq? var (caar state)) (null? (cdar state)))(error 'varnotassigned "using before assigning"))
       ((and (eq? var 'return) (eq? #t (car (cdar state)))) 'true)
       ((and (eq? var 'return) (eq? #f (car (cdar state)))) 'false)

@@ -137,7 +137,7 @@
     (cond
       [(null? state) (error 'varnotdeclared "The variable has not been declared")]
       [(existsHelper var (car state)) (list (insertHelper var value (car state)))]
-      [else (insert var value (cdr state))])))
+      [else (cons (car state) (insert var value (cdr state)))])))
 ; updates the value of the given variable in the state
 (define insertHelper
   (lambda (var value state)

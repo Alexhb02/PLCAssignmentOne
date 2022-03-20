@@ -119,7 +119,7 @@
     (cond
       ((null? state) 'false)
       ((null? (cdr state)) (getHelper var (car state)))
-      [(exists? var (car state)) (getHelper var (car state))]
+      [(existsHelper var (car state)) (getHelper var (car state))]
       [else (get var (cdr state))])))
 ; get the value of the variable stored in the state
 (define getHelper
@@ -136,7 +136,7 @@
   (lambda (var value state)
     (cond
       [(null? state) (error 'varnotdeclared "The variable has not been declared")]
-      [(null? (cdr state)) (list (insertHelper var value (car state)))]
+      [(existsHelper var (car state)) (list (insertHelper var value (car state)))]
       [else (insert var value (cdr state))])))
 ; updates the value of the given variable in the state
 (define insertHelper
@@ -160,6 +160,7 @@
 (define Mblock
   (lambda (actions layers)
     (cond
+      [(and (null? actions) (pair? layers)) layers]
       [(null? (car actions)) (cdr layers)]
       [else (Mblock (cdr actions) (Mstate (car actions) layers))]
      )))

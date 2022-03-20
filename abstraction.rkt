@@ -14,6 +14,7 @@
   (lambda (syntaxtree state)
     (cond
       [(null? syntaxtree) (get 'return state)]
+      [(eq? (caar syntaxtree) 'return) (get 'return (Mstate (car syntaxtree) state))]
       [else (interpreter-help (cdr syntaxtree) (Mstate (car syntaxtree) state))]
       )))
 

@@ -1,0 +1,1 @@
+("8.3" tarm64osx ("e0e83ce077a7725b80d5d28c796e973faa4fa1dd" . "07a44b5e3f49baeea69669c01c610daeb448f267") #"/Users/markwang/repos/CSDS345/CSDS345Project2/tests/lex.rkt" (collects #"errortrace" #"errortrace-key.rkt") (collects #"racket" #"main.rkt") (collects #"racket" #"runtime-config.rkt"))

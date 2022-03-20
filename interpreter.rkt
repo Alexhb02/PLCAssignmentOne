@@ -160,8 +160,7 @@
 (define Mblock
   (lambda (actions layers)
     (cond
-      [(and (null? actions) (pair? layers)) layers]
-      [(null? (car actions)) (cdr layers)]
+      [(null? actions) (cdr layers)]
       [else (Mblock (cdr actions) (Mstate (car actions) layers))]
      )))
 

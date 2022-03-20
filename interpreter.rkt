@@ -6,16 +6,16 @@
 ;returns the proper value by evaulating the syntax tree resulting from parsing the input file
 (define interpreter
   (lambda (filename)
-    (interpreter-help (parser filename) '(((return))))
-    ))
+    (interpreter-help (parser filename) '(((return)))))
+    )
 
-;helper function for the interpreter that evalutes each statement in the syntax tree while updating the state
+;helper function for the interpreter that evalutes each statement in the syntax tree while updating the state (lambda(v) (interpreter-help (cdr v))
 (define interpreter-help
   (lambda (syntaxtree state)
     (cond
       [(null? syntaxtree) (get 'return state)]
-      [(eq? (caar syntaxtree) 'return) (get 'return (Mstate (car syntaxtree) state))]
-      [else (interpreter-help (cdr syntaxtree) (Mstate (car syntaxtree) state))]
+      [(eq? (caar syntaxtree) 'return) (get 'return (Mstate (car syntaxtree) state (lambda(v) (interpreter-help (cdr syntaxtree) v))))]
+      [else (interpreter-help (cdr syntaxtree) (Mstate (car syntaxtree) state (lambda(v) (interpreter-help (cdr syntaxtree) v))))]
       )))
 
 ; evaluates the value of an expression
@@ -60,6 +60,7 @@
       ((not (null? (cdr (cdr expression)))) (cons (cons (list (cadr expression) (Mvalue (caddr expression) state)) (car state)) (cdr state)))
       ((not (null? (cadr expression))) (cons (cons (list (cadr expression)) (car state)) (cdr state))))))
 
+
 ; updates the state variable with the newly assigned value
 (define Massign
   (lambda (expression state)
@@ -75,19 +76,12 @@
       ((null? (get `return state)) (insert 'return (Mvalue expression state) state))
       (else state))))
 
-; check if there is a return value
-(define return
-  (lambda (state)
-    (cond
-      ((eq? (car state) 'return) (cdar state))
-      (else (return (cdr state))))))
-                                 
 ; evaluates an if statement
 (define Mif
-  (lambda (expression state)
+  (lambda (expression state next)
     (cond
-      ((Mboolean (conditional expression) state) (Mstate (then_s expression) state))
-      ((not (null? (optional_else expression))) (Mstate (else_s expression) state))
+      ((Mboolean (conditional expression) state) (Mstate (then_s expression) state next))
+      ((not (null? (optional_else expression))) (Mstate (else_s expression) state next))
       (else state))))
 
 ;abstraction for if statement
@@ -95,11 +89,14 @@
 
 ; evauluates a while statement
 (define Mwhile
-  (lambda (expression state)
+  (lambda (expression state next oldbreak)
+    (loop expression state next (lambda(v) (next v)))))
+
+(define loop
+  (lambda (expression state next break)
     (cond
-      [(not (Mboolean (conditional expression) state)) state]
-      [else (Mwhile expression (Mstate (then_s expression) state))]
-     )))
+      [(not (Mboolean (conditional expression) state)) (next state)]
+      [else (Mstate (then_s expression) state (lambda(v) (loop expression v next break)))])))
 
 ;abstractions for if and while statements 
 (define then_s cadr)
@@ -158,21 +155,22 @@
       (else (cons (car state) (insertHelper var value (cdr state)))))))
 
 ; evaluates the given statement
+
 (define Mstate
-  (lambda (statement state)
+  (lambda (statement state next)
     (cond
       ((eq? (car statement) 'var) (Mdeclare statement state))
-      ((eq? (car statement) 'if) (Mif (cdr statement) state))
+      ((eq? (car statement) 'if) (Mif (cdr statement) state next))
       ((eq? (car statement) '=) (Massign (cdr statement) state))
-      ((eq? (car statement) 'while) (Mwhile (cdr statement) state))
-      ((eq? (car statement) 'begin) (Mblock (cdr statement) (cons '() state)))
+      ((eq? (car statement) 'while) (Mwhile (cdr statement) state next (lambda(v) v)))
+      ((eq? (car statement) 'begin) (Mblock (cdr statement) (cons '() state) next))
       ((eq? (car statement) 'return) (Mreturn (cadr statement) state)))))
 
 (define Mblock
-  (lambda (actions layers)
+  (lambda (actions layers next)
     (cond
       [(null? actions) (cdr layers)]
-      [else (Mblock (cdr actions) (Mstate (car actions) layers))]
+      [else (Mblock (cdr actions) (Mstate (car actions) layers next) next)]
      )))
 
 ; helper functions to abstract the operator and operands of binary expressions.

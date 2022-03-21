@@ -168,6 +168,7 @@
       ((eq? (car statement) '=) (Massign (cdr statement) state))
       ((eq? (car statement) 'while) (Mwhile (cdr statement) state next break))
       ((eq? (car statement) 'begin) (Mblock (cdr statement) (cons '() state) next break))
+      ((eq? (car statement) 'break) (next state))
       ((eq? (car statement) 'return) (Mreturn (cadr statement) state)))))
 
 (define Mblock

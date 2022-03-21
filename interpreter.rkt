@@ -15,8 +15,7 @@
     (cond
       [(null? syntaxtree) (get 'return state)]
       [(not (pair? state)) state]
-      [(eq? (caar syntaxtree) 'return) (get 'return (Mstate (car syntaxtree) state (lambda(v) (interpreter-help (cdr syntaxtree) v)) (lambda (v) v)))] 
-      [else (interpreter-help (cdr syntaxtree) (Mstate (car syntaxtree) state (lambda(v) (interpreter-help (cdr syntaxtree) v)) (lambda (v) v)))])))
+      [else (interpreter-help (cdr syntaxtree) (Mstate (car syntaxtree) state (lambda (v) v) (lambda(v) (interpreter-help (cdr syntaxtree) v)) (lambda (v) v)))])))
 
 ; evaluates the value of an expression
 (define Mvalue
@@ -70,18 +69,17 @@
 
 ; evauluates the value of an expression following a return keyword
 (define Mreturn
-  (lambda (expression state)
+  (lambda (expression state return)
     (cond
       ((null? expression) (error `invalidreturn "Invalid return"))
-      ((null? (get `return state)) (insert 'return (Mvalue expression state) state))
-      (else state))))
+      (return (Mvalue expression state)))))
 
 ; evaluates an if statement
 (define Mif
-  (lambda (expression state next break)
+  (lambda (expression state return next break)
     (cond
-      ((Mboolean (conditional expression) state) (Mstate (then_s expression) state next break))
-      ((not (null? (optional_else expression))) (Mstate (else_s expression) state next break))
+      ((Mboolean (conditional expression) state) (Mstate (then_s expression) state return next break))
+      ((not (null? (optional_else expression))) (Mstate (else_s expression) state return next break))
       (else state))))
 
 ;abstraction for if statement
@@ -89,18 +87,18 @@
 
 ; evauluates a while statement
 (define Mwhile
-  (lambda (expression state next oldbreak)
+  (lambda (expression state return next oldbreak)
     (letrec ((break (lambda (v) 
                       (next v))))
-    (loop expression state next break))))
+    (loop expression state return next break))))
 
 (define loop
-  (lambda (expression state next break)
+  (lambda (expression state return next break)
     (letrec ((repeat (lambda (v)
                        (loop expression v next break))))
     (cond
       [(not (Mboolean (conditional expression) state)) (next state)]
-      [else (Mwhile expression (Mstate (then_s expression) state next break) repeat break)]))))
+      [else (Mwhile expression (Mstate (then_s expression) state return next break) return repeat break)]))))
 
 ;abstractions for if and while statements 
 (define then_s cadr)
@@ -111,10 +109,10 @@
   (lambda (var state)
     (cond
       ((null? state) #f)
-      ((null? (cdr state)) (existsHelper var (car state)))
+      ((null?
+        (cdr state)) (existsHelper var (car state)))
       ((eq? (existsHelper var (car state)) #t) #t)
       (else (exists? var (cdr state))))))
-
 ; check whether a variable exists in the state (ie check if the variable has been declared)
 (define existsHelper
   (lambda (var state)
@@ -147,6 +145,7 @@
 (define insert
   (lambda (var value state)
     (cond
+      [(not (pair? state)) state]
       [(null? state) (error 'varnotdeclared "The variable has not been declared")]
       [(existsHelper var (car state)) (list (insertHelper var value (car state)))]
       [else (cons (car state) (insert var value (cdr state)))])))
@@ -159,23 +158,22 @@
       (else (cons (car state) (insertHelper var value (cdr state)))))))
 
 ; evaluates the given statement
-
 (define Mstate
-  (lambda (statement state next break)
+  (lambda (statement state return next break)
     (cond
       ((eq? (car statement) 'var) (Mdeclare statement state))
-      ((eq? (car statement) 'if) (Mif (cdr statement) state next break))
+      ((eq? (car statement) 'if) (Mif (cdr statement) return state next break))
       ((eq? (car statement) '=) (Massign (cdr statement) state))
-      ((eq? (car statement) 'while) (Mwhile (cdr statement) state next break))
-      ((eq? (car statement) 'begin) (Mblock (cdr statement) (cons '() state) next break))
+      ((eq? (car statement) 'while) (Mwhile (cdr statement) state return next break))
+      ((eq? (car statement) 'begin) (Mblock (cdr statement) (cons '() state) return next break))
       ((eq? (car statement) 'break) (next state))
-      ((eq? (car statement) 'return) (Mreturn (cadr statement) state)))))
+      ((eq? (car statement) 'return) (Mreturn (cadr statement) state return)))))
 
 (define Mblock
-  (lambda (actions layers next break)
+  (lambda (actions layers return next break)
     (cond
-      [(null? actions) (cdr layers)]
-      [else (Mblock (cdr actions) (Mstate (car actions) layers next break) next break)]
+      [(null? actions) (pop-layer layers)]
+      [else (Mblock (cdr actions) (Mstate (car actions) layers return next break) return next break)]
      )))
 
 ; helper functions to abstract the operator and operands of binary expressions.

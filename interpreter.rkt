@@ -14,9 +14,8 @@
   (lambda (syntaxtree state)
     (cond
       [(null? syntaxtree) (get 'return state)]
-      [(eq? (caar syntaxtree) 'return) (get 'return (Mstate (car syntaxtree) state (lambda(v) (interpreter-help (cdr syntaxtree) v))))]
-      [else (interpreter-help (cdr syntaxtree) (Mstate (car syntaxtree) state (lambda(v) (interpreter-help (cdr syntaxtree) v))))]
-      )))
+      [(eq? (caar syntaxtree) 'return) (get 'return (Mstate (car syntaxtree) state (lambda(v) (interpreter-help (cdr syntaxtree) v)) (lambda (v) v)))]
+      [else (interpreter-help (cdr syntaxtree) (Mstate (car syntaxtree) state (lambda(v) (interpreter-help (cdr syntaxtree) v)) (lambda (v) v)))])))
 
 ; evaluates the value of an expression
 (define Mvalue
@@ -78,10 +77,10 @@
 
 ; evaluates an if statement
 (define Mif
-  (lambda (expression state next)
+  (lambda (expression state next break)
     (cond
-      ((Mboolean (conditional expression) state) (Mstate (then_s expression) state next))
-      ((not (null? (optional_else expression))) (Mstate (else_s expression) state next))
+      ((Mboolean (conditional expression) state) (Mstate (then_s expression) state next break))
+      ((not (null? (optional_else expression))) (Mstate (else_s expression) state next break))
       (else state))))
 
 ;abstraction for if statement
@@ -90,13 +89,17 @@
 ; evauluates a while statement
 (define Mwhile
   (lambda (expression state next oldbreak)
-    (loop expression state next (lambda(v) (next v)))))
+    (letrec ((break (lambda (v) 
+                      (next v))))
+    (loop expression state next break))))
 
 (define loop
   (lambda (expression state next break)
+    (letrec ((repeat (lambda (v)
+                       (loop expression v next break))))
     (cond
       [(not (Mboolean (conditional expression) state)) (next state)]
-      [else (Mstate (then_s expression) state (lambda(v) (loop expression v next break)))])))
+      [else (Mstate (then_s expression) state repeat break)]))))
 
 ;abstractions for if and while statements 
 (define then_s cadr)
@@ -157,20 +160,20 @@
 ; evaluates the given statement
 
 (define Mstate
-  (lambda (statement state next)
+  (lambda (statement state next break)
     (cond
       ((eq? (car statement) 'var) (Mdeclare statement state))
-      ((eq? (car statement) 'if) (Mif (cdr statement) state next))
+      ((eq? (car statement) 'if) (Mif (cdr statement) state next break))
       ((eq? (car statement) '=) (Massign (cdr statement) state))
-      ((eq? (car statement) 'while) (Mwhile (cdr statement) state next (lambda(v) v)))
-      ((eq? (car statement) 'begin) (Mblock (cdr statement) (cons '() state) next))
+      ((eq? (car statement) 'while) (Mwhile (cdr statement) state next break))
+      ((eq? (car statement) 'begin) (Mblock (cdr statement) (cons '() state) next break))
       ((eq? (car statement) 'return) (Mreturn (cadr statement) state)))))
 
 (define Mblock
-  (lambda (actions layers next)
+  (lambda (actions layers next break)
     (cond
       [(null? actions) (cdr layers)]
-      [else (Mblock (cdr actions) (Mstate (car actions) layers next) next)]
+      [else (Mblock (cdr actions) (Mstate (car actions) layers next break) next break)]
      )))
 
 ; helper functions to abstract the operator and operands of binary expressions.

@@ -184,3 +184,9 @@
     (car exp)))
 (define leftoperand cadr)
 (define rightoperand caddr)
+
+; pop layer off
+(define pop-layer
+  (lambda (layers)
+    (cdr layers)))
+  

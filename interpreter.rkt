@@ -14,7 +14,8 @@
   (lambda (syntaxtree state)
     (cond
       [(null? syntaxtree) (get 'return state)]
-      [(eq? (caar syntaxtree) 'return) (get 'return (Mstate (car syntaxtree) state (lambda(v) (interpreter-help (cdr syntaxtree) v)) (lambda (v) v)))]
+      [(not (pair? state)) state]
+      [(eq? (caar syntaxtree) 'return) (get 'return (Mstate (car syntaxtree) state (lambda(v) (interpreter-help (cdr syntaxtree) v)) (lambda (v) v)))] 
       [else (interpreter-help (cdr syntaxtree) (Mstate (car syntaxtree) state (lambda(v) (interpreter-help (cdr syntaxtree) v)) (lambda (v) v)))])))
 
 ; evaluates the value of an expression
@@ -99,7 +100,7 @@
                        (loop expression v next break))))
     (cond
       [(not (Mboolean (conditional expression) state)) (next state)]
-      [else (Mstate (then_s expression) state repeat break)]))))
+      [else (Mwhile expression (Mstate (then_s expression) state next break) repeat break)]))))
 
 ;abstractions for if and while statements 
 (define then_s cadr)

@@ -20,14 +20,14 @@
         (return-value (interpret-call-function '(funcall main) (create-base-layer (parser file) (newenvironment)) 
                                   (lambda (v env) (myerror "Uncaught exception thrown")))))))
 
-; does the first pass through of the parsed code to put the global variables and functions in the base layer of the state
+; creates the "base-layer" which contains the global variables and function definitions 
 (define create-base-layer
   (lambda (statement-list environment)
     (if (null? statement-list)
         environment
         (create-base-layer (cdr statement-list) (base-layer-interpret-statement (car statement-list) environment)))))
 
-; interpret a statement in the first pass through of the parsed code
+; interprets a statement in the base-layer (only accepts declarations, assignments, and function definitions)
 (define base-layer-interpret-statement
   (lambda (statement environment)
     (cond
@@ -37,8 +37,7 @@
       (else (myerror "Unknown statement:" (statement-type statement))))))
 
 
-; interprets the function declaration and builds the function binding  
-; interprets the function declaration and builds the function binding
+; interprets the function declaration and builds the function's closure
 (define interpret-declare-function
   (lambda (statement environment)
     (insert (get-function-name statement)
@@ -58,7 +57,6 @@
         '()
         (cons (lookup (car variables) environment) (rebuild-env-from-variables (cdr variables) environment)))))
 
-; temporary not-recursion
 ; closure is a list of formal parameters, function body, and environment
 (define make-closure list)        
           
@@ -105,7 +103,6 @@
         (else (update-frame (cons (cdr function-var-list) (cdr function-val-list)) previous-environment))))))
 
 ; interprets a function call
-; TODO: Fix the order of the interpret call statement. Stay potent.
 (define interpret-call-function
   (lambda (statement environment throw)
     (call/cc
@@ -114,17 +111,16 @@
           (interpret-statement-list (get-closure-body function-closure)
                                     (bind-parameters (get-closure-params function-closure)
                                                      (get-funcall-actual-parameters statement)
-                                                     (push-frame (list ((get-closure-environment function-closure) environment))) ; get-closure-environment might break! current implementation is just a list! recursion might break it for real!!
+                                                     (push-frame (list ((get-closure-environment function-closure) environment))) 
                                                      environment
                                                      throw)
-                                    ;(lambda (s) (myerror "no return statement")) do we need this??? -probably not
                                     return
                                     (lambda (env) (myerror "Break used outside of loop"))
                                     (lambda (env) (myerror "Continue used outside of loop"))
                                     throw))
         (lookup (get-function-name statement) environment))))))
 
-; binds function input values to formal parameters
+; binds actual params to formal params for a function
 (define bind-parameters
   (lambda (formal-params argument-list fstate environment throw)
     (if (null? formal-params)
@@ -510,4 +506,8 @@
 (interpret "tests/3_5.txt")
 (interpret "tests/3_6.txt")
 (interpret "tests/3_7.txt")
+(interpret "tests/3_8.txt")
+(interpret "tests/3_9.txt")
+(interpret "tests/3_10.txt")
+(interpret "tests/3_11.txt")
 
